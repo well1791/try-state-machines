@@ -3,17 +3,17 @@
 import { assignInlineVars } from '@vanilla-extract/dynamic';
 
 import * as css from './page.css'
-import useKeyListener from '@/hooks/useKeyListener'
-import ActionsList from '@/components/organisms/ActionsList'
-import { normalHelp } from '@/data/edtiorHelperDescriptions'
+import useEditorHandler from '@/hooks/useEditorHandler'
 
 export default function Home() {
-  const { editor: { buffer, mode, position } } = useKeyListener()
+  const { buffer, mode, position } = useEditorHandler()
 
   return (
     <main className={css.container}>
       <div className={css.content}>
-        <div className={css.header}></div>
+        <div className={css.header}>
+          no file creation yet ^^
+        </div>
 
         <code className={css.body}>
           {buffer.map((line, index) => (
@@ -22,7 +22,7 @@ export default function Home() {
             </div>
           ))}
           <span
-            className={css.caret}
+            className={css.caret[mode]}
             style={assignInlineVars({
               [css.row]: position.current.row.toString(),
               [css.col]: position.current.col.toString(),

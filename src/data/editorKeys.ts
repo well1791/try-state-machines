@@ -1,4 +1,4 @@
-export const alphaKeys = {
+export const alphaKey = {
   a: 'a',
   b: 'b',
   c: 'c',
@@ -27,9 +27,9 @@ export const alphaKeys = {
   z: 'z',
 } as const
 
-export type AlphaKeyName = keyof typeof alphaKeys
+export type AlphaKeyName = keyof typeof alphaKey
 
-export const numberKeys = {
+export const numberKey = {
   zero: 0,
   one: 1,
   two: 2,
@@ -42,10 +42,10 @@ export const numberKeys = {
   nine: 9,
 } as const
 
-export type NumberKeyName = keyof typeof numberKeys
-export type NumberKeyValue = typeof numberKeys[NumberKeyName]
+export type NumberKeyName = keyof typeof numberKey
+export type NumberKeyValue = typeof numberKey[NumberKeyName]
 
-export const unshiftedSymbolKeys = {
+export const unshiftedSymbolKey = {
   backtick: '`',
   dash: '-',
   equal: '=',
@@ -59,10 +59,10 @@ export const unshiftedSymbolKeys = {
   slash: '/',
 } as const
 
-export type UnshiftedSymbolKeyName = keyof typeof unshiftedSymbolKeys
-export type UnshiftedSymbolKeyValue = typeof unshiftedSymbolKeys[UnshiftedSymbolKeyName]
+export type UnshiftedSymbolKeyName = keyof typeof unshiftedSymbolKey
+export type UnshiftedSymbolKeyValue = typeof unshiftedSymbolKey[UnshiftedSymbolKeyName]
 
-export const shiftedSymbolKeys = {
+export const shiftedSymbolKey = {
   tilde: '~',
   exclamation: '!',
   at: '@',
@@ -86,10 +86,21 @@ export const shiftedSymbolKeys = {
   question: '?',
 } as const
 
-export type ShiftedSymbolKeyName = keyof typeof shiftedSymbolKeys
-export type ShiftedSymbolKeyValue = typeof shiftedSymbolKeys[ShiftedSymbolKeyName]
+export type ShiftedSymbolKeyName = keyof typeof shiftedSymbolKey
+export type ShiftedSymbolKeyValue = typeof shiftedSymbolKey[ShiftedSymbolKeyName]
 
-export const specialKeys = {
+export const printableKey = {
+  ...alphaKey,
+  ...numberKey,
+  ...unshiftedSymbolKey,
+  ...shiftedSymbolKey,
+  space: ' ',
+}
+
+export type PrintableKeyName = keyof typeof printableKey
+export type PrintableKeyValue = typeof printableKey[PrintableKeyName]
+
+export const specialKey = {
   escape: 'escape',
   tab: 'tab',
   arrowup: 'arrowup',
@@ -105,29 +116,18 @@ export const specialKeys = {
   end: 'end',
 } as const
 
-export type SpecialKeyName = keyof typeof specialKeys
+export type SpecialKeyName = keyof typeof specialKey
 
-export const modKeys = {
+export const usableKey = {
+  ...printableKey,
+  ...specialKey,
+} as const
+
+export type UsableKeyName = keyof typeof usableKey
+export type UsableKeyValue = typeof usableKey[UsableKeyName]
+
+export const modKey = {
   shift: 'shift',
 } as const
 
-export type ModKeyName = keyof typeof modKeys
-
-export const printableKeys = {
-  ...alphaKeys,
-  ...numberKeys,
-  ...unshiftedSymbolKeys,
-  ...shiftedSymbolKeys,
-  space: ' ',
-}
-
-export type PrintableKeyName = keyof typeof printableKeys
-export type PrintableKeyValue = typeof printableKeys[PrintableKeyName]
-
-export const usableKeys = {
-  ...printableKeys,
-  ...specialKeys,
-} as const
-
-export type UsableKeyName = keyof typeof usableKeys
-export type UsableKeyValue = typeof usableKeys[UsableKeyName]
+export type ModKeyName = keyof typeof modKey

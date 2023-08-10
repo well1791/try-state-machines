@@ -4,7 +4,6 @@ export const sharedAction = {
   moveCaretDown: 'moveCaretDown',
   moveCaretLeft: 'moveCaretLeft',
   moveCaretRight: 'moveCaretRight',
-  // addOneLineUp: 'addOneLineUp',
   deleteLeftChar: 'deleteLeftChar',
   // deleteRightChar: 'deleteRightChar',
   // addTabSpaces: 'addTabSpaces',
