@@ -1,4 +1,4 @@
-import { createVar, style, keyframes } from '@vanilla-extract/css';
+import { createVar, style, styleVariants, keyframes } from '@vanilla-extract/css';
 
 export const row = createVar();
 export const col = createVar();
@@ -39,7 +39,7 @@ const blink = keyframes({
   to: { opacity: '100%' }
 });
 
-export const caret = style({
+export const caretBase = style({
   vars: {
     [fontHeight]: '1.15em',
     [row]: '0',
@@ -47,7 +47,6 @@ export const caret = style({
   },
 
   display: 'block',
-  backgroundColor: 'gray',
   blockSize: fontHeight,
   inlineSize: '0.2ch',
 
@@ -56,4 +55,13 @@ export const caret = style({
   insetInlineStart: `calc(${col} * 1ch)`,
 
   animation: `.65s infinite alternate ${blink}`,
+})
+
+export const caret = styleVariants({
+  insert: [caretBase, {
+    backgroundColor: 'gray',
+  }],
+  normal: [caretBase, {
+    backgroundColor: 'red',
+  }],
 })

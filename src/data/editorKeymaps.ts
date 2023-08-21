@@ -1,12 +1,21 @@
 import type * as edKeyT from './editorKeys'
-import type * as edActionT from './editorActions'
 import * as edKey from './editorKeys'
+
+import type * as edActionT from './editorActions'
 import * as edAction from './editorActions'
 
 export * from './editorActions'
 export * from './editorKeys'
 
-export type Buffer = Array<string>
+type NonEmptyArray<T> = [T, ...T[]]
+const isNonEmptyArray = <T>(a: T[]): a is NonEmptyArray<T> => a.length > 0
+const cleanArray = (a: Array<string>): Buffer => isNonEmptyArray(a) ? a : ['']
+const concatArr = (...args: Array<Array<string>>): Buffer => {
+  const [a, ...rest] = args
+  return cleanArray(a.concat(...rest))
+}
+
+export type Buffer = NonEmptyArray<string>
 
 export const editorMode = {
   normal: 'normal',
@@ -37,9 +46,8 @@ export type UsableKey<T extends edKeyT.UsableKeyValue> = {
 export type UsableKeys<T extends edKeyT.UsableKeyValue> =
   Readonly<Array<UsableKey<T>>>
 
-export type KeymapData<T extends edKeyT.UsableKeyValue> = {
+export type KeymapData = {
   actionName: edActionT.EditorAction
-  keys: UsableKeys<T>
 }
 
 export type EditorInfoUpdater<
@@ -51,132 +59,156 @@ export type EditorInfoUpdater<
 ) => void
 
 export type KeymapAction<T extends edKeyT.UsableKeyValue> =
-  (data: KeymapData<T>) => EditorInfoUpdater<T>
+  (data: KeymapData) => EditorInfoUpdater<T>
 
 export type KeymapValue<T extends edKeyT.UsableKeyValue = edKeyT.UsableKeyValue> = {
-  keys: UsableKeys<T>
+  keys?: UsableKeys<T>
+  pattern?: RegExp
   action: KeymapAction<T>
 }
 
 export type Keymap<T extends edActionT.EditorAction> = { [K in T]: KeymapValue }
 
-const splitAt = (i: number, xs: string) => [xs.slice(0, i), xs.slice(i)]
+const splitStrAt = (i: number, xs: string): [string, string] =>
+  [xs.slice(0, i), xs.slice(i)]
 
 export const sharedKeymap: Keymap<edActionT.sharedAction> = {
   [edAction.sharedAction.moveCaretUp]: {
     keys: [
-      { key: edKey.specialKeys.arrowup },
+      { key: edKey.specialKey.arrowup },
     ],
-    action: () => ({ buffer, position: { current }, ...editor }, setEditor) => {
-      const prevRow = current.row - 1
+    action: () => ({
+      buffer: b,
+      position: { current: c },
+      ...ed
+    }, setEditor) => {
+      const prevRow = c.row - 1
       const row = Math.max(prevRow, 0)
-      const col = Math.min(current.col, buffer[row].length)
+      const col = Math.min(c.col, b[row].length)
       setEditor({
-        ...editor,
-        buffer,
+        ...ed,
+        buffer: b,
         position: {
           current: { row, col },
-          previous: current,
+          previous: c,
         }
       })
     },
   },
   [edAction.sharedAction.moveCaretDown]: {
     keys: [
-      { key: edKey.specialKeys.arrowdown },
+      { key: edKey.specialKey.arrowdown },
     ],
-    action: () => ({ buffer, position: { current }, ...editor }, setEditor) => {
-      const nextRow = current.row + 1
-      const row = Math.min(nextRow, buffer.length - 1)
-      const col = Math.min(current.col, buffer[row].length)
+    action: () => ({
+      buffer: b,
+      position: { current: c },
+      ...ed
+    }, setEditor) => {
+      const nextRow = c.row + 1
+      const row = Math.min(nextRow, b.length - 1)
+      const col = Math.min(c.col, b[row].length)
       setEditor({
-        ...editor,
-        buffer,
+        ...ed,
+        buffer: b,
         position: {
           current: { row, col },
-          previous: current,
+          previous: c,
         }
       })
     },
   },
   [edAction.sharedAction.moveCaretLeft]: {
     keys: [
-      { key: edKey.specialKeys.arrowleft },
+      { key: edKey.specialKey.arrowleft },
     ],
-    action: () => ({ buffer, position: { current }, ...editor }, setEditor) => {
-      if (current.row == 0 && current.col == 0) {
-        return;
-      }
-      let row = current.row
-      let col = current.col - 1
+    action: () => ({
+      buffer: b,
+      position: { current: c },
+      ...ed
+    }, setEditor) => {
+      if (c.row == 0 && c.col == 0) return;
+      let row = c.row
+      let col = c.col - 1
       if (col < 0) {
-        row = Math.max(current.row - 1, 0)
-        col = buffer[row].length
+        row = Math.max(c.row - 1, 0)
+        col = b[row].length
       }
       setEditor({
-        ...editor,
-        buffer,
+        ...ed,
+        buffer: b,
         position: {
           current: { row, col },
-          previous: current,
+          previous: c,
         }
       })
     },
   },
   [edAction.sharedAction.moveCaretRight]: {
     keys: [
-      { key: edKey.specialKeys.arrowright },
+      { key: edKey.specialKey.arrowright },
     ],
-    action: () => ({ buffer, position: { current }, ...editor }, setEditor) => {
-      const lastRow = buffer.length - 1
-      if (current.row == lastRow && current.col == buffer[lastRow].length) {
-        return;
-      }
+    action: () => ({
+      buffer: b,
+      position: { current: c },
+      ...ed
+    }, setEditor) => {
+      const lastRow = b.length - 1
+      if (c.row == lastRow && c.col == b[lastRow].length) return;
 
-      let row = current.row
-      let col = current.col + 1
-      if (col > buffer[current.row].length) {
-        row = Math.min(current.row + 1, lastRow)
+      let row = c.row
+      let col = c.col + 1
+      if (col > b[c.row].length) {
+        row = Math.min(c.row + 1, lastRow)
         col = 0
       }
       setEditor({
-        ...editor,
-        buffer,
+        ...ed,
+        buffer: b,
         position: {
           current: { row, col },
-          previous: current,
+          previous: c,
         }
       })
     },
   },
   [edAction.sharedAction.deleteLeftChar]: {
     keys: [],
-    action: () => ({ buffer, position: { current }, ...editor }, setEditor) => {
-      let row = current.row
-      let col = Math.max(current.col - 1, 0)
-      if (buffer[current.row].length == 0 || current.col == 0) {
-        const line = buffer[current.row]
-        const [top, bot] = [
-          buffer.slice(0, current.row),
-          buffer.slice(current.row + 1),
-        ]
-        const updatedBuffer = top.concat(bot)
-        buffer = updatedBuffer.length === 0 ? [''] : updatedBuffer
-        row = Math.max(current.row - 1, 0)
-        col = buffer[row].length
-        buffer[row] = buffer[row] + line
-      } else {
-        const [left, right] = splitAt(current.col, buffer[current.row])
-        buffer[current.row] = left.slice(0, -1) + right
+    action: () => (editor, setEditor) => {
+      const prev = (n: number) => Math.max(n - 1, 0)
+      const updateCurrentPosition = ({
+        buffer,
+        position: { current },
+      }: EditorInfo): EditorCaretPosition => {
+        const prevRow = prev(current.row)
+        return current.col == 0
+          ? { row: prevRow, col: buffer[prevRow].length }
+          : { row: current.row, col: prev(current.col) }
+      }
+      const updateBuffer = ({
+        buffer: b,
+        position: { current: c, previous: p }
+      }: EditorInfo): Buffer => {
+        if (c.row == p.row && c.col == p.col) return b;
+
+        const [prevL, prevR] = splitStrAt(p.col, b[p.row])
+        b[p.row] = prevL.slice(0, -1) + prevR
+
+        if (c.row != p.row) {
+          b[c.row] = b[c.row] + b[p.row]
+          b = concatArr(b.slice(0, p.row), b.slice(p.row + 1))
+        }
+
+        return b
       }
 
+      const position = {
+        current: updateCurrentPosition(editor),
+        previous: editor.position.current,
+      }
       setEditor({
         ...editor,
-        buffer,
-        position: {
-          current: { row, col },
-          previous: current,
-        }
+        buffer: updateBuffer({ ...editor, position }),
+        position,
       })
     }
   },
@@ -188,38 +220,38 @@ export const normalKeymap: Keymap<edActionT.NormalAction> = {
   [edAction.sharedAction.moveCaretUp]: {
     ...sharedKeymap[edAction.sharedAction.moveCaretUp],
     keys: [
-      { key: edKey.alphaKeys.w },
-      { key: edKey.specialKeys.arrowup },
+      { key: edKey.alphaKey.w },
+      { key: edKey.specialKey.arrowup },
     ],
   },
   [edAction.sharedAction.moveCaretDown]: {
     ...sharedKeymap[edAction.sharedAction.moveCaretDown],
     keys: [
-      { key: edKey.alphaKeys.s },
-      { key: edKey.specialKeys.arrowdown },
+      { key: edKey.alphaKey.s },
+      { key: edKey.specialKey.arrowdown },
     ],
   },
   [edAction.sharedAction.moveCaretLeft]: {
     ...sharedKeymap[edAction.sharedAction.moveCaretLeft],
     keys: [
-      { key: edKey.alphaKeys.a },
-      { key: edKey.specialKeys.arrowleft },
+      { key: edKey.alphaKey.a },
+      { key: edKey.specialKey.arrowleft },
     ],
   },
   [edAction.sharedAction.moveCaretRight]: {
     ...sharedKeymap[edAction.sharedAction.moveCaretRight],
     keys: [
-      { key: edKey.alphaKeys.d },
-      { key: edKey.specialKeys.arrowright },
+      { key: edKey.alphaKey.d },
+      { key: edKey.specialKey.arrowright },
     ],
   },
   [edAction.sharedAction.deleteLeftChar]: {
     ...sharedKeymap[edAction.sharedAction.deleteLeftChar],
-    keys: [{ key: edKey.alphaKeys.o }],
+    keys: [{ key: edKey.alphaKey.o }],
   },
 
   [edAction.normalAction.goToInsert]: {
-    keys: [{ key: edKey.unshiftedSymbolKeys.semicolon }],
+    keys: [{ key: edKey.unshiftedSymbolKey.semicolon }],
     action: () => (editor, setEditor) =>
       setEditor({ ...editor, mode: editorMode.insert }),
   },
@@ -230,82 +262,109 @@ export const insertKeymap: Keymap<edActionT.InsertAction> = {
 
   [edAction.sharedAction.deleteLeftChar]: {
     ...sharedKeymap[edAction.sharedAction.deleteLeftChar],
-    keys: [{ key: edKey.specialKeys.backspace }],
+    keys: [{ key: edKey.specialKey.backspace }],
   },
 
   [edAction.insertAction.addOneLineDown]: {
-    keys: [{ key: edKey.specialKeys.enter }],
-    action: () => ({ buffer, position: { current }, ...editor }, setEditor) => {
-      const [left, right] = splitAt(current.col, buffer[current.row])
-      buffer[current.row] = left
-      const row = current.row + 1
-      const [top, bot] = [
-        buffer.slice(0, row),
-        buffer.slice(row),
-      ]
+    keys: [{ key: edKey.specialKey.enter }],
+    action: () => (editor, setEditor) => {
+      const updateCurrentPosition = ({
+        position: { current: c },
+      }: EditorInfo): EditorCaretPosition => ({ row: c.row + 1, col: 0 })
+      const updateBuffer = ({
+        buffer: b,
+        position: { current: c, previous: p }
+      }: EditorInfo): Buffer => {
+        const [prevL, prevR] = splitStrAt(p.col, b[p.row])
+        b[p.row] = prevL
+        const [top, bot] = [
+          b.slice(0, c.row),
+          b.slice(c.row),
+        ]
+        return cleanArray(top.concat(prevR, bot))
+      }
+
+      const position = {
+        current: updateCurrentPosition(editor),
+        previous: editor.position.current,
+      }
       setEditor({
         ...editor,
-        buffer: top.concat(right, bot),
-        position: {
-          current: { row, col: 0 },
-          previous: current,
-        }
+        buffer: updateBuffer({ ...editor, position }),
+        position,
       })
     }
   },
 
   [edAction.insertAction.goToNormal]: {
-    keys: [{ key: edKey.specialKeys.escape }],
+    keys: [{ key: edKey.specialKey.escape }],
     action: () => (editor, setEditor) =>
       setEditor({ ...editor, mode: editorMode.normal }),
   },
   [edAction.insertAction.inputPrintableKeys]: {
-    keys: Object.values(edKey.printableKeys).map((key) => [
-      { mod: [edKey.modKeys.shift], key },
-      { key },
-    ]).flat(),
-    action: () => (
-      { buffer, position: { current }, ...editor },
-      setEditor,
-      { key },
-    ) => {
-      const [left, right] = splitAt(current.col, buffer[current.row])
-      buffer[current.row] = left + key + right
+    pattern: new RegExp('^.$'),
+    action: () => ({
+      buffer: b,
+      position: { current: c, previous: p },
+      ...ed
+    }, setEditor, { key }) => {
+      const [left, right] = splitStrAt(p.col, b[p.row])
+      b[p.row] = left + key + right
 
       setEditor({
-        ...editor,
-        buffer,
+        ...ed,
+        buffer: b,
         position: {
           current: {
-            row: current.row,
-            col: Math.min(current.col + 1, buffer[current.row].length),
+            row: p.row,
+            col: Math.min(p.col + 1, b[p.row].length),
           },
-          previous: current,
+          previous: c,
         },
       })
     },
   },
 } as const
 
-const flattenKeymapActions = <T extends edActionT.EditorAction>(
+type KeymapKeyAction = Record<string, EditorInfoUpdater>
+
+const flattenToKeymapKeyActions = <T extends edActionT.EditorAction>(
   keymap: Keymap<T>,
 ) => Object
   .entries<KeymapValue>(keymap)
-  .reduce<Record<string, EditorInfoUpdater>>((
-    a,
-    [actionName, { keys, action }],
-  ) => ({
-    ...a,
+  .reduce<KeymapKeyAction>((z, [actionName, { keys = [], action }]) => ({
+    ...z,
     ...keys.reduce((b, { mod, key }) => ({
       ...b,
       [`${mod ? mod + ' ' : ''}${key}`]: action({
         actionName: actionName as edActionT.EditorAction,
-        keys,
       }),
-    }), {})
+    }), {}),
   }), {})
 
 export const keymap = {
-  [editorMode.normal]: flattenKeymapActions(normalKeymap),
-  [editorMode.insert]: flattenKeymapActions(insertKeymap),
+  [editorMode.normal]: flattenToKeymapKeyActions(normalKeymap),
+  [editorMode.insert]: flattenToKeymapKeyActions(insertKeymap),
+} as const
+
+type PatternmapAction = {
+  pattern: RegExp
+  action: EditorInfoUpdater
+}
+
+const flattenToKeymapPatternActions = <T extends edActionT.EditorAction>(
+  keymap: Keymap<T>,
+) => Object
+  .entries<KeymapValue>(keymap)
+  .reduce<Array<PatternmapAction>>((z, [actionName, { action, pattern }]) => ([
+    ...z,
+    ...(pattern ? [{
+      pattern,
+      action: action({ actionName: actionName as edActionT.EditorAction })
+    }] : []),
+  ]), [])
+
+export const keymapPattern = {
+  [editorMode.normal]: flattenToKeymapPatternActions(normalKeymap),
+  [editorMode.insert]: flattenToKeymapPatternActions(insertKeymap),
 } as const
