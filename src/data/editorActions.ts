@@ -1,41 +1,30 @@
-// SHARED ACTIONS
-export const sharedAction = {
+export const navigateAction = {
+  goToInsert: 'goToInsert',
+  goToNormal: 'goToNormal',
   moveCaretUp: 'moveCaretUp',
   moveCaretDown: 'moveCaretDown',
   moveCaretLeft: 'moveCaretLeft',
   moveCaretRight: 'moveCaretRight',
-  deleteLeftChar: 'deleteLeftChar',
-  // deleteRightChar: 'deleteRightChar',
-  // addTabSpaces: 'addTabSpaces',
   // moveCaretStartOfText: 'moveCaretStartOfText',
   // moveCaretStartOfLine: 'moveCaretStartOfLine',
   // moveCaretEndOfLine: 'moveCaretEndOfLine',
-  // undo: 'undo',
+} as const
+
+export type NavigateAction = keyof typeof navigateAction
+
+// EDITABLE ACTIONS
+
+export const editAction = {
+  inputPrintableKeys: 'inputPrintableKeys',
+  addOneLineDown: 'addOneLineDown',
+  deleteLeft: 'deleteLeft',
+  // deleteRight: 'deleteRight',
+  undo: 'undo',
   // redo: 'redo',
 } as const
 
-export type sharedAction = keyof typeof sharedAction
-
-// NORMAL MODE
-
-export const normalAction = {
-  ...sharedAction,
-  goToInsert: 'goToInsert',
-} as const
-
-export type NormalAction = keyof typeof normalAction
-
-// INSERT MODE
-
-export const insertAction = {
-  ...sharedAction,
-  goToNormal: 'goToNormal',
-  inputPrintableKeys: 'inputPrintableKeys',
-  addOneLineDown: 'addOneLineDown',
-} as const
-
-export type InsertAction = keyof typeof insertAction
+export type EditAction = keyof typeof editAction
 
 // ALL
 
-export type EditorAction = NormalAction | InsertAction
+export type EditorAction = NavigateAction | EditAction

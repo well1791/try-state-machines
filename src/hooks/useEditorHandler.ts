@@ -9,6 +9,7 @@ export default function useEditorHandler() {
     mode: t.editorMode.normal,
     buffer: [''],
     position: { current: defaultPos, previous: defaultPos },
+    undoRedo: [[], []],
   })
 
   useEffect(() => {
