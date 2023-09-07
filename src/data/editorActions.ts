@@ -20,7 +20,7 @@ export const editAction = {
   deleteLeft: 'deleteLeft',
   // deleteRight: 'deleteRight',
   undo: 'undo',
-  // redo: 'redo',
+  redo: 'redo',
 } as const
 
 export type EditAction = keyof typeof editAction

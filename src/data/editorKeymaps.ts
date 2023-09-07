@@ -62,6 +62,11 @@ export type KeymapValue = {
 
 export type Keymap<T extends edActionT.EditorAction> = { [K in T]: KeymapValue }
 
+const addBufferToUndo = ({
+  buffer,
+  undoRedo: [undos, redos],
+}: EditorInfo): UndoRedo => ([[structuredClone(buffer), ...undos], redos])
+
 export const editAction: Record<edActionT.EditAction, KeymapAction> = {
   [edAction.editAction.inputPrintableKeys]: () => (editor, setEditor, { key }) => {
     const updateCurrentPosition = ({
@@ -80,24 +85,15 @@ export const editAction: Record<edActionT.EditAction, KeymapAction> = {
       current: updateCurrentPosition(editor),
       previous: editor.position.current,
     }
-    console.log('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
-    console.log(
-      [editor.buffer, ...editor.undoRedo[0]],
-      editor.undoRedo[1],
-    )
 
     setEditor({
       ...editor,
       buffer: updateBuffer({ ...editor, position }),
       position,
-      undoRedo: [
-        [structuredClone(editor.buffer), ...editor.undoRedo[0]],
-        editor.undoRedo[1],
-      ],
     })
   },
 
-  [edAction.editAction.addOneLineDown]: () => (editor, setEditor) => {
+  [edAction.editAction.addOneLineDown]: () => (ed, setEditor) => {
     const updateCurrentPosition = ({
       position: { current: c },
     }: EditorInfo): EditorCaretPosition => ({ row: c.row + 1, col: 0 })
@@ -115,21 +111,18 @@ export const editAction: Record<edActionT.EditAction, KeymapAction> = {
     }
 
     const position = {
-      current: updateCurrentPosition(editor),
-      previous: editor.position.current,
+      current: updateCurrentPosition(ed),
+      previous: ed.position.current,
     }
     setEditor({
-      ...editor,
-      buffer: updateBuffer({ ...editor, position }),
+      ...ed,
       position,
-      undoRedo: [
-        [editor.buffer, ...editor.undoRedo[0]],
-        editor.undoRedo[1],
-      ],
+      buffer: updateBuffer({ ...ed, position }),
+      undoRedo: addBufferToUndo(ed),
     })
   },
 
-  [edAction.editAction.deleteLeft]: () => (editor, setEditor) => {
+  [edAction.editAction.deleteLeft]: () => (ed, setEditor) => {
     const prev = (n: number) => Math.max(n - 1, 0)
     const updateCurrentPosition = ({
       buffer,
@@ -158,60 +151,41 @@ export const editAction: Record<edActionT.EditAction, KeymapAction> = {
     }
 
     const position = {
-      current: updateCurrentPosition(editor),
-      previous: editor.position.current,
+      current: updateCurrentPosition(ed),
+      previous: ed.position.current,
     }
     setEditor({
-      ...editor,
-      buffer: updateBuffer({ ...editor, position }),
+      ...ed,
+      buffer: updateBuffer({ ...ed, position }),
       position,
-      undoRedo: [
-        [editor.buffer, ...editor.undoRedo[0]],
-        editor.undoRedo[1],
-      ],
+      undoRedo: addBufferToUndo(ed),
     })
   },
 
-  [edAction.editAction.undo]: () => (editor, setEditor) => {
-    const updateCurrentPosition = ({
-      position: { current: c },
-      undoRedo: [[lastUndo]],
-    }: EditorInfo): EditorCaretPosition => lastUndo ? {
-      row: Math.min(c.row, lastUndo.length),
-      col: Math.min(c.col, lastUndo[c.row]?.length ?? 0),
-    } : c
-    const updateBuffer = ({
-      buffer: b,
-      undoRedo: [[lastUndo]],
-    }: EditorInfo): uT.Buffer => lastUndo ?? b
-    const updateUndoRedoList = ({
-      undoRedo: [[lastUndo, ...restUndo], redoList],
-    }: EditorInfo): UndoRedo => ([restUndo, [lastUndo, ...redoList]])
+  [edAction.editAction.undo]: () => (ed, setEditor) => {
+    console.log('NOT UNDO YET')
+  },
 
-    const position = {
-      current: updateCurrentPosition(editor),
-      previous: editor.position.current,
-    }
-
-    console.table('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY')
-    console.table(position)
-    console.log(updateUndoRedoList(editor))
-    console.log(editor.undoRedo)
-    setEditor({
-      ...editor,
-      buffer: updateBuffer({ ...editor, position }),
-      position,
-      undoRedo: updateUndoRedoList(editor),
-    })
+  [edAction.editAction.redo]: () => (ed, setEditor) => {
+    console.log('NOT REDO YET')
   },
 }
 
 export const navigateAction: Record<edActionT.NavigateAction, KeymapAction> = {
-  [edAction.navigateAction.goToInsert]: () => (editor, setEditor) =>
-    setEditor({ ...editor, mode: editorMode.insert }),
+  [edAction.navigateAction.goToInsert]: () => (ed, setEditor) =>
+    setEditor({ ...ed, mode: editorMode.insert }),
 
-  [edAction.navigateAction.goToNormal]: () => (editor, setEditor) =>
-    setEditor({ ...editor, mode: editorMode.normal }),
+  [edAction.navigateAction.goToNormal]: () => (ed, setEditor) => {
+    const { buffer, undoRedo: [[lastAddedUndo]] } = ed
+    const hasChanges = JSON.stringify(lastAddedUndo) == JSON.stringify(buffer)
+    const undoRedo = hasChanges ? ed.undoRedo : addBufferToUndo(ed)
+    setEditor({
+      ...ed,
+      mode: editorMode.normal,
+      undoRedo,
+    })
+  },
+
 
   [edAction.navigateAction.moveCaretUp]: () => ({
     buffer: b,
@@ -227,7 +201,7 @@ export const navigateAction: Record<edActionT.NavigateAction, KeymapAction> = {
       position: {
         current: { row, col },
         previous: c,
-      }
+      },
     })
   },
 
@@ -245,7 +219,7 @@ export const navigateAction: Record<edActionT.NavigateAction, KeymapAction> = {
       position: {
         current: { row, col },
         previous: c,
-      }
+      },
     })
   },
 
@@ -308,6 +282,10 @@ export const normalKeymap = {
   [edAction.editAction.undo]: {
     keys: [{ key: edKey.alphaKey.u }],
     action: editAction.undo,
+  },
+  [edAction.editAction.redo]: {
+    keys: [{ key: edKey.alphaKey.u, mod: [edKey.modKey.shift] }],
+    action: editAction.redo,
   },
   [edAction.navigateAction.moveCaretUp]: {
     keys: [{ key: edKey.alphaKey.w }, { key: edKey.specialKey.arrowup }],
